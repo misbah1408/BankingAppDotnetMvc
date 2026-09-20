@@ -1,0 +1,24 @@
+using BankingLoanManagement.Data;
+using BankingLoanManagement.Models;
+using System.Security.Claims;
+namespace BankingLoanManagement.Services;
+
+public class AuditService(ApplicationDbContext db)
+{
+    private readonly ApplicationDbContext db = db;
+
+    public async Task LogAsync(ClaimsPrincipal user, string module, string action, string details, HttpContext? ctx = null)
+    {
+        db.AuditLogs.Add(new AuditLog
+        {
+
+            PerformedBy = user.Identity?.Name ?? "System",
+            Role = user.FindFirstValue(ClaimTypes.Role) ?? "System",
+            Module = module,
+            ActionPerformed = action,
+            Details = details,
+            IpAddress = ctx?.Connection.RemoteIpAddress?.ToString()
+        });
+        await db.SaveChangesAsync();
+    }
+}

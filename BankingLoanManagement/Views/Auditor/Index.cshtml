@@ -1,0 +1,39 @@
+<h1 class="text-3xl font-bold mb-6">Auditor Dashboard</h1>
+<div class="grid md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-slate-900 p-5 rounded">Liquidity<h2 class="text-2xl font-bold">₹@ViewBag.Liquidity.ToString("N0")
+    </h2>
+</div>
+<div class="bg-slate-900 p-5 rounded">Approved Loans<h2 class="text-2xl font-bold">₹@ViewBag.Loans.ToString("N0")
+</h2>
+</div>
+<div class="bg-slate-900 p-5 rounded">Accounts<h2 class="text-2xl font-bold">@ViewBag.Accounts</h2>
+</div>
+<div class="bg-slate-900 p-5 rounded">Transactions<h2 class="text-2xl font-bold">@ViewBag.Transactions</h2>
+</div>
+</div>
+<section class="bg-slate-900 p-5 rounded-xl">
+    <h2 class="font-bold mb-4">Audit Log</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <tr class="text-slate-400 text-left">
+                <th>Date</th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Module</th>
+                <th>Action</th>
+                <th>Details</th>
+                <th>IP</th>
+            </tr>@foreach(var x in Model){
+            <tr class="border-t border-slate-800">
+                <td class="py-2">@x.LogDate</td>
+                <td>@x.PerformedBy</td>
+                <td>@x.Role</td>
+                <td>@x.Module</td>
+                <td>@x.ActionPerformed</td>
+                <td>@x.Details</td>
+                <td>@x.IpAddress</td>
+            </tr>
+        }
+    </table>
+</div>
+</section>
