@@ -70,6 +70,7 @@ public class Loan
 
     [ForeignKey(nameof(CustomerProfileId))]
     public CustomerProfile CustomerProfile { get; set; } = null!;
-
+    // Maps to VARBINARY(MAX) in SQL Server
+    public byte[] FileData { get; set; } = Array.Empty<byte>();
     public ICollection<RepaymentSchedule> RepaymentSchedules { get; set; } = [];
 }

@@ -10,6 +10,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(builder.
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<BankingService>();
 builder.Services.AddScoped<LoanService>();
+builder.Services.AddHttpClient<GeminiAiService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
@@ -41,8 +42,8 @@ app.MapControllerRoute(
     );
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(); 
-    db.Database.EnsureCreated(); 
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.EnsureCreated();
     SeedData.Initialize(db);
 }
 app.Run();

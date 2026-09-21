@@ -1,33 +1,9 @@
 @using BankingLoanManagement.Enums
-<h1 class="text-3xl font-bold mb-6">Loan Officer · Underwriting Queue</h1>
-@* <div class="space-y-4">
-    @foreach (var l in Model)
-    {
-        <div class="bg-slate-900 p-5 rounded-xl border border-slate-800">
-            <div class="flex justify-between">
-                <h2 class="font-bold">@l.LoanNumber · @l.LoanType</h2>
-                <span>Risk: @l.RiskRating (@l.CreditScore)</span>
-            </div>
-            <p class="text-slate-400">
-                Applicant: @l.CustomerProfile.User.Name · ₹@l.PrincipalAmount.ToString("N2") · @l.TenureMonths months
-            </p>
-            <p class="text-sm mt-2">@l.CollateralDetails</p>
-            <div class="mt-4 flex gap-2">
-                <form method="post" action="/LoanOfficer/Approve">
-                    <input type="hidden" name="id" value="@l.Id" />
-                    <input name="interestRate" value="10" type="number" step="0.01" class="w-24 p-2 bg-slate-800 rounded" />
-                    <button class="bg-emerald-600 px-3 py-2 rounded">Approve</button>
-                </form>
-                <form method="post" action="/LoanOfficer/Reject">
-                    <input type="hidden" name="id" value="@l.Id" />
-                    <input name="reason" placeholder="Rejection reason" class="p-2 bg-slate-800 rounded" />
-                    <button class="bg-red-600 px-3 py-2 rounded">Reject</button>
-                </form>
-            </div>
-        </div>
-    }
-</div> *@
+@model IEnumerable<BankingLoanManagement.Models.Loan>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<h1 class="text-3xl font-bold mb-6">Loan Officer · Underwriting Queue</h1>
 <div id="view-officer" class="role-view space-y-6">
     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
         <div class="flex justify-between items-center mb-4">
@@ -35,7 +11,7 @@
                 <i class="fa-solid fa-scale-balanced text-amber-400"></i> Underwriting Queue (Pending Approvals)
             </h2>
             <span class="bg-amber-500/20 text-amber-400 text-xs px-3 py-1 rounded-full font-semibold">
-                @Model.Count Pending Applications
+                @Model.Count() Pending Applications
             </span>
         </div>
 
@@ -70,10 +46,9 @@
                             <td class="p-3 font-bold">₹@l.PrincipalAmount.ToString("N2")</td>
                             <td class="p-3 font-bold">@l.TenureMonths months</td>
                             <td class="p-3 text-slate-400">
-                                @if(@l.CollateralDetails == null)
+                                @if (l.CollateralDetails == null)
                                 {
-                                    var res = "no details available";
-                                    @res
+                                    <span>no details available</span>
                                 }
                                 else
                                 {
@@ -85,20 +60,23 @@
                                     @l.CreditScore Score
                                 </span>
                             </td>
-                            <td class="p-3 flex gap-2">
-                                <div class="mt-4 flex gap-2">
-                                    <form method="post" action="/LoanOfficer/Approve">
-                                        <input type="hidden" name="id" value="@l.Id" />
-                                        <input name="interestRate" value="10" type="number" step="0.01"
-                                               class="w-24 p-2 bg-slate-800 rounded" />
-                                        <button class="bg-emerald-600 px-3 py-2 rounded">Approve</button>
-                                    </form>
-                                    <form method="post" action="/LoanOfficer/Reject">
-                                        <input type="hidden" name="id" value="@l.Id" />
-                                        <input name="reason" placeholder="Rejection reason"
-                                               class="p-2 bg-slate-800 rounded" />
-                                        <button class="bg-red-600 px-3 py-2 rounded">Reject</button>
-                                    </form>
+                            <td class="p-3">
+                                <div class="flex flex-col gap-2">
+                                    <button onclick="openVerificationModal(@l.Id)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded flex items-center justify-center gap-1.5 font-semibold">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> Verify & AI Risk
+                                    </button>
+                                    <div class="flex gap-2">
+                                        <form method="post" action="/LoanOfficer/Approve" class="flex gap-1">
+                                            <input type="hidden" name="id" value="@l.Id" />
+                                            <input name="interestRate" value="10" type="number" step="0.01" class="w-16 p-1 bg-slate-900 rounded border border-slate-700 text-center" />
+                                            <button class="bg-emerald-600 hover:bg-emerald-500 px-2 py-1 rounded font-semibold">Approve</button>
+                                        </form>
+                                        <form method="post" action="/LoanOfficer/Reject" class="flex gap-1">
+                                            <input type="hidden" name="id" value="@l.Id" />
+                                            <input name="reason" placeholder="Reason" class="w-20 p-1 bg-slate-900 rounded border border-slate-700" />
+                                            <button class="bg-red-600 hover:bg-red-500 px-2 py-1 rounded font-semibold">Reject</button>
+                                        </form>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -108,3 +86,141 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Verification & AI Compiler -->
+<div id="verifyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl">
+        <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+            <h3 class="text-lg font-bold flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-indigo-400"></i> Verification & Gemini AI Underwriter
+            </h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        </div>
+
+        <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            <!-- Details Grid -->
+            <div class="grid grid-cols-2 gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 text-sm">
+                <div><span class="text-slate-400">Applicant:</span> <strong id="modalApplicant" class="text-white">---</strong></div>
+                <div><span class="text-slate-400">Loan Category:</span> <strong id="modalCategory" class="text-white">---</strong></div>
+                <div><span class="text-slate-400">Amount:</span> <strong id="modalAmount" class="text-white">---</strong></div>
+                <div><span class="text-slate-400">Credit Score:</span> <strong id="modalCredit" class="text-white">---</strong></div>
+                <div class="col-span-2"><span class="text-slate-400">Collateral Details:</span> <p id="modalCollateral" class="text-slate-300 font-medium mt-1">---</p></div>
+            </div>
+
+            <!-- PDF Upload / Text Extraction Section -->
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Document / Collateral PDF Text Extraction</label>
+                <div class="flex gap-2">
+                    <input type="file" id="pdfFileInput" accept="application/pdf" class="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer" />
+                </div>
+                <textarea id="extractedPdfText" rows="3" placeholder="Uploaded PDF text auto-compiles here..." class="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-indigo-500"></textarea>
+            </div>
+
+            <!-- AI Output Area -->
+            <div id="aiOutputContainer" class="hidden bg-slate-950 p-5 rounded-xl border border-indigo-500/30 text-sm space-y-3">
+                <h4 class="font-bold text-indigo-400 flex items-center gap-2">
+                    <i class="fa-solid fa-brain"></i> Gemini 2.5 Flash Risk Prediction & Assessment
+                </h4>
+                <div id="aiOutputContent" class="text-slate-300 space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="p-4 border-t border-slate-800 bg-slate-800/30 flex justify-between items-center">
+            <button onclick="runGeminiAiCompiler()" id="compileBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-microchip"></i> Extract & Predict Risk with Gemini AI
+            </button>
+            <button onclick="closeModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    let currentLoanId = null;
+
+    async function openVerificationModal(loanId) {
+        currentLoanId = loanId;
+        document.getElementById('aiOutputContainer').classList.add('hidden');
+        document.getElementById('aiOutputContent').innerHTML = '';
+        document.getElementById('extractedPdfText').value = '';
+        document.getElementById('pdfFileInput').value = '';
+
+        const response = await fetch(`/LoanOfficer/GetLoanDetails/${loanId}`);
+        if(response.ok) {
+            const data = await response.json();
+            document.getElementById('modalApplicant').innerText = data.applicantName;
+            document.getElementById('modalCategory').innerText = data.loanType;
+            document.getElementById('modalAmount').innerText = '₹' + Number(data.principalAmount).toLocaleString('en-IN');
+            document.getElementById('modalCredit').innerText = data.creditScore;
+            document.getElementById('modalCollateral').innerText = data.collateralDetails;
+
+            document.getElementById('verifyModal').classList.remove('hidden');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('verifyModal').classList.add('hidden');
+    }
+
+    // PDF Text Extraction Compiler
+    document.getElementById('pdfFileInput').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file || file.type !== 'application/pdf') return;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let textContent = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const text = await page.getTextContent();
+            textContent += text.items.map(s => s.str).join(' ') + '\n';
+        }
+
+        document.getElementById('extractedPdfText').value = textContent.trim();
+    });
+
+    // Gemini 2.5 Flash Risk Prediction Call
+    async function runGeminiAiCompiler() {
+        if (!currentLoanId) return;
+
+        const compileBtn = document.getElementById('compileBtn');
+        const aiOutputContainer = document.getElementById('aiOutputContainer');
+        const aiOutputContent = document.getElementById('aiOutputContent');
+
+        compileBtn.disabled = true;
+        compileBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing Gemini AI Analysis...`;
+
+        try {
+            const extractedText = document.getElementById('extractedPdfText').value;
+
+            const response = await fetch('/LoanOfficer/AnalyzeRisk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    loanId: currentLoanId,
+                    extractedPdfText: extractedText
+                })
+            });
+
+            if (response.ok) {
+                const htmlResult = await response.json();
+                aiOutputContent.innerHTML = htmlResult;
+                aiOutputContainer.classList.remove('hidden');
+            } else {
+                aiOutputContent.innerHTML = '<span class="text-red-400">Failed to analyze risk score.</span>';
+                aiOutputContainer.classList.remove('hidden');
+            }
+        } catch (err) {
+            aiOutputContent.innerHTML = '<span class="text-red-400">Error processing request. Check console details.</span>';
+            aiOutputContainer.classList.remove('hidden');
+        } finally {
+            compileBtn.disabled = false;
+            compileBtn.innerHTML = `<i class="fa-solid fa-microchip"></i> Extract & Predict Risk with Gemini AI`;
+        }
+    }
+</script>
