@@ -62,7 +62,6 @@ public class CustomerController(ApplicationDbContext d, BankingService b, LoanSe
             return View(m);
         }
         var c = await db.CustomerProfiles.FirstAsync(x => x.UserId == UserId);
-        var score = 650 + Random.Shared.Next(0, 131);
         var loan = new Loan
         {
             LoanNumber = "LN-" + Random.Shared.Next(100000, 999999),
@@ -71,9 +70,14 @@ public class CustomerController(ApplicationDbContext d, BankingService b, LoanSe
             PrincipalAmount = m.PrincipalAmount,
             TenureMonths = m.TenureMonths,
             CollateralDetails = m.CollateralDetails,
-            CreditScore = score,
-            RiskRating = score >= 750 ? "Low" : score >= 650 ? "Medium" : "High"
         };
+
+        if (m.Document != null)
+        {
+            using var memoryStream = new MemoryStream();
+            await m.Document.CopyToAsync(memoryStream);
+            loan.FileData = memoryStream.ToArray();
+        }
         db.Loans.Add(loan);
         await db.SaveChangesAsync();
         await audit.LogAsync(User, "LOAN", "APPLY", $"Applied {m.LoanType} loan {loan.LoanNumber}", HttpContext);
