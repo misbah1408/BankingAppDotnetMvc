@@ -100,7 +100,6 @@ namespace BankingLoanManagement.Controllers
                 loan,
                 pdfText
             );
-
             return Json(result);
         }
 

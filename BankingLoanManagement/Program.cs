@@ -10,7 +10,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(builder.
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<BankingService>();
 builder.Services.AddScoped<LoanService>();
-builder.Services.AddHttpClient<GeminiAiService>();
+builder.Services.AddScoped<GeminiAiService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {

@@ -6,6 +6,7 @@
     <UserSecretsId>b0eb0d08-0c9c-47fb-a753-40da775bd11b</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Google.GenAI" Version="1.21.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
       <PrivateAssets>all</PrivateAssets>

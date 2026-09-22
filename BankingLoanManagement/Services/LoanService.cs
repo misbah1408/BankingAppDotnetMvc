@@ -6,10 +6,9 @@ namespace BankingLoanManagement.Services;
 
 public class LoanService(ApplicationDbContext db)
 {
-    private readonly ApplicationDbContext db;
     public static decimal CalculateEmi(decimal p, decimal annual, int months)
     {
-        if (months <= 0) return 0; 
+        if (months <= 0) return 0;
         var r = (double)annual / 12 / 100;
         var n = months; if (r == 0)
             return Math.Round(p / n, 2);
@@ -17,9 +16,10 @@ public class LoanService(ApplicationDbContext db)
     }
     public async Task ApproveAsync(int id, decimal rate)
     {
-        var loan = await db.Loans.Include(x => x.CustomerProfile)
+        var loan = await db.Loans.Include(x=>x.CustomerProfile)
                             .ThenInclude(x => x.Accounts)
-                            .FirstAsync(x => x.Id == id); loan.Status = LoanStatus.Approved;
+                            .FirstAsync(x => x.Id == id);
+        loan.Status = LoanStatus.Approved;
         loan.InterestRate = rate;
         loan.EmiAmount = CalculateEmi(loan.PrincipalAmount, rate, loan.TenureMonths);
         loan.BalanceRemaining = loan.PrincipalAmount;

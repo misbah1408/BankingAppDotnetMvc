@@ -1,30 +1,23 @@
 ﻿using System.Text;
-using System.Text.Json;
+using Google.GenAI;
+using Google.GenAI.Types;
 using BankingLoanManagement.Models;
 
 namespace BankingLoanManagement.Services
 {
     public class GeminiAiService
     {
-        private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
-        public GeminiAiService(
-            HttpClient httpClient,
-            IConfiguration configuration)
+        public GeminiAiService(IConfiguration configuration)
         {
-            _httpClient = httpClient;
-
             _apiKey = configuration["Gemini:ApiKey"]
                 ?? throw new Exception("Gemini API Key is missing.");
         }
 
-        public async Task<string> AnalyzeLoanAsync(
-            Loan loan,
-            string pdfText)
+        public async Task<string> AnalyzeLoanAsync(Loan loan, string pdfText)
         {
-            var applicantName =
-                loan.CustomerProfile?.User?.Name ?? "Unknown";
+            var applicantName = loan.CustomerProfile?.User?.Name ?? "Unknown";
 
             var prompt = $@"
 You are an AI assistant helping a Loan Officer review a loan application.
@@ -35,15 +28,18 @@ IMPORTANT:
 - Analyze only the information provided.
 - Do not invent missing information.
 - If information is unavailable, write 'Not available'.
-- Do NOT use Markdown.
-- Do NOT use *, **, #, bullet symbols, JSON, HTML, or code blocks.
-- Return clean, readable plain text.
+- Do NOT use Markdown formatting (no *, **, #, etc.).
+- Provide a concise response formatted in clean HTML (using Tailwind CSS classes).
 - Use exactly the following section format.
 
+DOCUMENT TEXT:
+{pdfText}
+
+Provide a concise response formatted in clean HTML (using Tailwind CSS classes) app theme(dark)  containing:
 LOAN APPLICATION ANALYSIS
 
 1. APPLICANT INFORMATION
-Name: {loan.CustomerProfile?.User?.Name ?? "Not available"}
+Name: {applicantName}
 Loan Type: {loan.LoanType}
 Loan Amount: ₹{loan.PrincipalAmount:N2}
 Tenure: {loan.TenureMonths} months
@@ -74,58 +70,35 @@ FINAL NOTE
 This analysis is an AI-assisted review only. The Loan Officer must verify the documents and make the final loan decision.
 ";
 
-            var requestBody = new
+            try
             {
-                contents = new[]
+                // Initialize Google GenAI Client
+                var client = new Client(apiKey: _apiKey);
+
+                // Send content request using SDK
+                var response = await client.Models.GenerateContentAsync(
+                    model: "gemini-2.5-flash",
+                    contents: prompt
+                );
+
+                // Access generated text directly from response property
+                var resultText = response?.Text;
+
+                if (string.IsNullOrWhiteSpace(resultText))
                 {
-                    new
-                    {
-                        parts = new[]
-                        {
-                            new
-                            {
-                                text = prompt
-                            }
-                        }
-                    }
+                    return "<p>No response generated from Gemini API.</p>";
                 }
-            };
 
-            var json = JsonSerializer.Serialize(requestBody);
+                // Strip potential Markdown code blocks wrapping the HTML response
+                resultText = resultText.Replace("```html", "").Replace("```", "").Trim();
 
-            using var content =
-                new StringContent(
-                    json,
-                    Encoding.UTF8,
-                    "application/json");
-
-            var url =
-                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_apiKey}";
-
-            var response =
-                await _httpClient.PostAsync(url, content);
-
-            var responseBody =
-                await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return $"Gemini API Error: {responseBody}";
+                return resultText;
             }
-
-            using var document =
-                JsonDocument.Parse(responseBody);
-
-            var result =
-                document.RootElement
-                    .GetProperty("candidates")[0]
-                    .GetProperty("content")
-                    .GetProperty("parts")[0]
-                    .GetProperty("text")
-                    .GetString();
-
-            return result ??
-                   "No analysis was generated.";
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Gemini API Error: {ex.Message}");
+                return "<p class='text-red-400'>Failed to evaluate loan risk using AI Compiler. Please retry.</p>";
+            }
         }
     }
 }
