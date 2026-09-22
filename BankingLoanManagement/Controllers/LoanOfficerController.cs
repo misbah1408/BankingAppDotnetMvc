@@ -52,7 +52,8 @@ namespace BankingLoanManagement.Controllers
                 principalAmount = loan.PrincipalAmount,
                 tenureMonths = loan.TenureMonths,
                 collateralDetails =
-                    loan.CollateralDetails ?? "No collateral details supplied."
+                    loan.CollateralDetails ?? "No collateral details supplied.",
+                isDoc = loan.FileData != null && loan.FileData.Length != 0
             });
         }
 
@@ -145,6 +146,22 @@ namespace BankingLoanManagement.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> DownloadPdf(int id)
+        {
+            var loan = await db.Loans.FindAsync(id);
+
+            if (loan == null || loan.FileData == null || loan.FileData.Length == 0)
+            {
+                return NotFound("PDF not found.");
+            }
+
+            return File(
+                loan.FileData,
+                "application/pdf",
+                $"LoanDocument_{loan.Id}.pdf"
+            );
         }
     }
 }
