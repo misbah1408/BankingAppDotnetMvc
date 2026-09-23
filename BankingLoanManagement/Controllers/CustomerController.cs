@@ -29,7 +29,7 @@ public class CustomerController(ApplicationDbContext d, BankingService b, LoanSe
 
         ViewBag.Transactions = await db.Transactions
             .Include(x => x.Account)
-            .Where(x => x.Account.CustomerProfileId == c.Id)
+            .Where(x => x.Account.CustomerProfileId == c.Id && x.Status == RequestStatus.Approved)
             .OrderByDescending(x => x.TransactionDate)
             .Take(10)
             .ToListAsync();
